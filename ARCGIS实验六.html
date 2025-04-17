@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced ArcGIS Map</title>
+    <style>
+        html,
+        body {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+        #header {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
+        }
+        #main-container {
+            display: flex;
+            height: calc(100% - 40px);
+        }
+        #basemap-gallery {
+            width: 20%;
+            min-width: 200px;
+            background-color: #f4f4f4;
+            padding: 10px;
+            overflow-y: auto;
+            border-right: 1px solid #ccc; /* 添加右侧边框 */
+        }
+        #viewDiv {
+            width: 80%;
+        }
+    </style>
+    <!-- Load Calcite components from CDN -->
+    <script type="module" src="https://js.arcgis.com/calcite-components/3.0.3/calcite.esm.js"></script>
+    <!-- Load the ArcGIS Maps SDK for JavaScript from CDN -->
+    <link rel="stylesheet" href="https://js.arcgis.com/4.32/esri/themes/light/main.css" />
+    <script src="https://js.arcgis.com/4.32/"></script>
+    <!-- Load Map components from CDN -->
+    <script type="module" src="https://js.arcgis.com/map-components/4.32/arcgis-map-components.esm.js"></script>
+</head>
+<body>
+    <div id="header">
+        <h1>长江四级流域地图</h1>
+    </div>
+    <div id="main-container">
+        <div id="basemap-gallery"></div>
+        <div id="viewDiv"></div>
+    </div>
+</body>
+</html>
+<script>
+    require([
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/FeatureLayer",
+        "esri/widgets/ScaleBar",
+        "esri/widgets/Legend",
+        "esri/widgets/Search",
+        "esri/widgets/LayerList",
+        "esri/widgets/BasemapGallery"
+    ], function (Map, MapView, FeatureLayer, ScaleBar, Legend, Search, LayerList, BasemapGallery) {
+        const map = new Map({
+            basemap: "streets-navigation-vector"
+        });
+        const view = new MapView({
+            container: "viewDiv",
+            map: map,
+            // 这里假设专题图层区域的中心坐标，你可以根据实际情况修改
+            center: [112.41667, 30.55000], 
+            zoom: 6
+        });
+        const trailheadsLayer = new FeatureLayer({
+            url: "https://www.geosceneonline.cn/server/rest/services/Hosted/长江四级流域地图/FeatureServer/0"
+        });
+        map.add(trailheadsLayer);
+
+        // 添加小部件的函数
+        function addWidgets(view) {
+            // 添加比例尺
+            const scaleBar = new ScaleBar({
+                view: view,
+                unit: "metric"
+            });
+            view.ui.add(scaleBar, {
+                position: "bottom-left"
+            });
+            // 添加图例
+            const legend = new Legend({
+                view: view
+            });
+            view.ui.add(legend, "bottom-right");
+            // 添加搜索框
+            const search = new Search({
+                view: view,
+                includeDefaultSources: false,
+                sources: [{
+                    locator: "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer",
+                    singleLineFieldName: "SingleLine",
+                    name: "ArcGIS World Geocoding Service",
+                    placeholder: "搜索地点",
+                    countryCode: "CN",
+                    zoomScale: 5000
+                }]
+            });
+            view.ui.add(search, {
+                position: "top-right",
+                index: 0
+            });
+            // 添加图层列表
+            const layerList = new LayerList({
+                view: view,
+                listItemCreatedFunction: function (event) {
+                    const item = event.item;
+                    if (item.layer.type!== "group") {
+                        item.panel = {
+                            content: "legend",
+                            open: true
+                        };
+                    }
+                }
+            });
+            view.ui.add(layerList, {
+                position: "top-right",
+                index: 1
+            });
+            // 添加底图组件
+            const basemapGallery = new BasemapGallery({
+                view: view,
+                container: "basemap-gallery"
+            });
+        }
+
+        view.when(() => {
+            addWidgets(view);
+        });
+    });
+</script>
